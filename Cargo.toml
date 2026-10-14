@@ -1,0 +1,23 @@
+[workspace]
+resolver = "2"
+members = ["crates/oxifsshare-core", "crates/oxifsshare"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+# MSRV: see docs/CONTRIBUTING.md (milestone 4) and the "MSRV policy" section of README.md.
+# 1.86 is the floor required by quick-xml 0.42 (used from milestone 2).
+# It will be raised in milestone 3 if the chosen GUI toolkit needs a newer compiler.
+rust-version = "1.86"
+license = "MIT"
+repository = "https://github.com/mateusrdp/oxifsshare"
+authors = ["The oxifsshare contributors"]
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true

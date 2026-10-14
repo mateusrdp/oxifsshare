@@ -1,0 +1,45 @@
+# Build output
+/target/
+**/*.rs.bk
+
+# ---------------------------------------------------------------------------
+# PRIVACY: never commit real archive data. Everything below is deliberately
+# broad. Synthetic fixtures are generated at test time into temp directories,
+# so nothing like this should ever need to be committed.
+# ---------------------------------------------------------------------------
+fsshare/
+fsshare*/
+fs-share.xml
+fs-share*.xml
+*.msg
+*.eml
+*.tif
+*.tiff
+*.pdf
+*.jpg
+*.jpeg
+*.png
+*.bmp
+*.zip
+*.7z
+*.rar
+*.tar
+*.tar.gz
+*.tgz
+*.bak
+*.log
+archive/
+archives/
+data/
+private/
+samples/
+stage*.txt
+
+# Allow-list for the few binary-ish files that are legitimately ours.
+# (Add explicit exceptions here, one by one, in a reviewed commit.)
+
+# Editors / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store

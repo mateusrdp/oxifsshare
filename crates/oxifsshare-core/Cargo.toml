@@ -1,0 +1,16 @@
+[package]
+name = "oxifsshare-core"
+description = "Headless core of oxifsshare: archive index parsing, file matching and search."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+# Intentionally empty in milestone 1. Milestone 2 adds quick-xml (see docs/ARCHITECTURE.md).
