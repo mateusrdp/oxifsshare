@@ -51,6 +51,7 @@ oxifsshare /path/to/fsshare      # or run it and type the path
 - Filter by document type, file kind and date range (`YYYY-MM-DD`). Click a column header to sort (click again to reverse, once more to clear).
 - Click a row for its details; double-click or press Enter to open it with your default application. Up/Down move the selection.
 - `.msg` rows carry an orange marker. Opening one converts it to `.eml` in a private temporary folder (removed on exit) and hands that to your mail application; "Open original .msg" skips the conversion. Bodies stored only as RTF are not converted; see `docs/MSG.md`.
+- Ctrl + mouse wheel zooms the whole interface (useful on high-DPI screens).
 - The app never renders documents itself. It needs `xdg-open` (package `xdg-utils`) to open files.
 - Running the GUI needs the usual desktop libraries (X11 or Wayland, OpenGL/EGL, xkbcommon); see `docs/BUILDING.md`.
 

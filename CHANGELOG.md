@@ -10,6 +10,7 @@
 - `docs/FORMAT.md` lists the dataset-specific column names (names only).
 
 - Milestone 4: release workflow (Debian sid tarball, AppImage built on Debian 12, Windows portable zip, `SHA256SUMS`, generated notes), third-party licence notices, weekly `cargo audit`, `BUILDING.md`, `CONTRIBUTING.md`, `SECURITY.md`.
+- GUI: Ctrl + mouse wheel (or pinch) zooms the whole interface; Ctrl +/-/0 also work. Not remembered between runs.
 - Windows: settings stored under `%APPDATA%`, `\\?\` path prefix stripped before opening.
 
 - Milestone 5: `.msg` to `.eml` conversion (pure Rust, `cfb`), converted on open into a private temporary folder, "Open original .msg" fallback, `[Messages]` section in `--check`, `docs/MSG.md`, synthetic `.msg` builder and tests.

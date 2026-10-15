@@ -320,7 +320,18 @@ impl App {
     }
 
     /// Draws one frame. Separate from `eframe::App::update` so tests can run it headless.
+    /// Ctrl + mouse wheel (or touchpad pinch) scales the whole interface.
+    /// Ctrl + plus/minus/0 are handled by egui itself. Not remembered between runs.
+    fn apply_zoom(ctx: &egui::Context) {
+        let delta = ctx.input(|i| i.zoom_delta());
+        if (delta - 1.0).abs() > f32::EPSILON {
+            let z = (ctx.zoom_factor() * delta).clamp(0.5, 4.0);
+            ctx.set_zoom_factor(z);
+        }
+    }
+
     pub fn ui(&mut self, ctx: &egui::Context) {
+        Self::apply_zoom(ctx);
         if std::mem::take(&mut self.pending_autoload) {
             self.start_load(ctx);
         }
@@ -1093,5 +1104,65 @@ mod tests {
         assert!(calls.borrow().is_empty());
         let e = app.error.clone().unwrap();
         assert!(e.contains("Could not convert") && e.contains("Open original"));
+    }
+
+    #[test]
+    fn ctrl_wheel_zooms_the_interface() {
+        let ctx = egui::Context::default();
+        let mut app = App::new(None, recorder().0);
+        app.remember_path = false;
+        let wheel = |dy: f32, ctrl: bool| {
+            let mut input = egui::RawInput {
+                screen_rect: Some(egui::Rect::from_min_size(
+                    egui::Pos2::ZERO,
+                    egui::vec2(1280.0, 760.0),
+                )),
+                ..Default::default()
+            };
+            input.events.push(egui::Event::MouseWheel {
+                unit: egui::MouseWheelUnit::Line,
+                delta: egui::vec2(0.0, dy),
+                modifiers: egui::Modifiers {
+                    ctrl,
+                    command: ctrl,
+                    ..Default::default()
+                },
+            });
+            input
+        };
+        // egui smooths wheel input over several frames, so run a few after the event.
+        let mut clock = 0.0f64;
+        let mut run = |ctx: &egui::Context, app: &mut App, mut input: egui::RawInput| {
+            for n in 0..12 {
+                clock += 0.016;
+                input.time = Some(clock);
+                let _ = ctx.run(input, |c| app.ui(c));
+                input = egui::RawInput {
+                    screen_rect: Some(egui::Rect::from_min_size(
+                        egui::Pos2::ZERO,
+                        egui::vec2(1280.0, 760.0),
+                    )),
+                    ..Default::default()
+                };
+                let _ = n;
+            }
+        };
+        let before = ctx.zoom_factor();
+        run(&ctx, &mut app, wheel(1.0, true));
+        let bigger = ctx.zoom_factor();
+        assert!(bigger > before, "wheel up with Ctrl zooms in");
+        run(&ctx, &mut app, wheel(-1.0, true));
+        run(&ctx, &mut app, wheel(-1.0, true));
+        assert!(ctx.zoom_factor() < bigger, "wheel down zooms out");
+        for _ in 0..5 {
+            run(&ctx, &mut app, egui::RawInput::default()); // let smoothing settle
+        }
+        let now = ctx.zoom_factor();
+        run(&ctx, &mut app, wheel(1.0, false));
+        assert_eq!(ctx.zoom_factor(), now, "plain wheel only scrolls");
+        for _ in 0..60 {
+            run(&ctx, &mut app, wheel(1.0, true));
+        }
+        assert!(ctx.zoom_factor() <= 4.0);
     }
 }
