@@ -256,8 +256,10 @@ fn decode_ansi(bytes: &[u8], cp: u32) -> Option<String> {
 
 fn utf16le(bytes: &[u8]) -> String {
     let units: Vec<u16> = bytes
-        .chunks_exact(2)
-        .map(|c| u16::from_le_bytes([c[0], c[1]]))
+        .as_chunks::<2>()
+        .0
+        .iter()
+        .map(|c| u16::from_le_bytes(*c))
         .collect();
     String::from_utf16_lossy(&units)
         .trim_end_matches('\0')
@@ -311,7 +313,9 @@ impl Props {
         for chunk in data
             .get(header..)
             .unwrap_or(&[])
-            .chunks_exact(16)
+            .as_chunks::<16>()
+            .0
+            .iter()
             .take(MAX_PROPS)
         {
             let tag = u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]);
