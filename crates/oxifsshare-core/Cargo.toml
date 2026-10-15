@@ -13,4 +13,5 @@ publish = false
 workspace = true
 
 [dependencies]
-# Intentionally empty in milestone 1. Milestone 2 adds quick-xml (see docs/ARCHITECTURE.md).
+quick-xml = "0.42"
+cfb = "0.15"

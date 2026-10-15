@@ -34,11 +34,15 @@ jobs:
       - name: Format
         run: cargo fmt --all -- --check
       - name: Clippy
-        run: cargo clippy --workspace --all-targets -- -D warnings
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - name: Clippy (headless, no GUI)
+        run: cargo clippy -p oxifsshare --no-default-features --all-targets --locked -- -D warnings
       - name: Test
-        run: cargo test --workspace
+        run: cargo test --workspace --locked
+      - name: Build (headless, no GUI)
+        run: cargo build -p oxifsshare --no-default-features --locked
       - name: Build (release)
-        run: cargo build --workspace --release
+        run: cargo build --workspace --release --locked
 
   msrv:
     name: MSRV build
@@ -56,4 +60,4 @@ jobs:
           rustup default "${{ steps.msrv.outputs.version }}"
           rustc --version
       - name: Build and test with MSRV
-        run: cargo test --workspace
+        run: cargo test --workspace --locked

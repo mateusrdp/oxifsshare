@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <!-- Original artwork for oxifsshare (MIT). A document with a magnifying lens. -->
+  <rect x="8" y="8" width="240" height="240" rx="44" fill="#1f4e5f"/>
+  <rect x="52" y="48" width="108" height="140" rx="8" fill="#e8f1f2"/>
+  <rect x="68" y="72" width="76" height="10" rx="3" fill="#1f4e5f"/>
+  <rect x="68" y="96" width="76" height="10" rx="3" fill="#1f4e5f"/>
+  <rect x="68" y="120" width="52" height="10" rx="3" fill="#1f4e5f"/>
+  <circle cx="162" cy="152" r="38" fill="#1f4e5f" fill-opacity="0.55" stroke="#f2a541" stroke-width="14"/>
+  <line x1="190" y1="180" x2="216" y2="206" stroke="#f2a541" stroke-width="14" stroke-linecap="round"/>
+</svg>

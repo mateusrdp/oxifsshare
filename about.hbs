@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>oxifsshare third-party licences</title>
+<style>body{font-family:sans-serif;max-width:60em;margin:2em auto;padding:0 1em}pre{white-space:pre-wrap;background:#f4f4f4;padding:.8em}</style></head>
+<body>
+<h1>Third-party licences</h1>
+<p>oxifsshare itself is MIT licensed (see LICENSE). It includes the following open-source components.</p>
+<h2>Overview</h2>
+<ul>{{#each overview}}<li><a href="#{{id}}">{{name}}</a> ({{count}})</li>{{/each}}</ul>
+<h2>Licences</h2>
+{{#each licenses}}
+<h3 id="{{id}}">{{name}}</h3>
+<p>Used by:</p>
+<ul>{{#each used_by}}<li>{{crate.name}} {{crate.version}}</li>{{/each}}</ul>
+<pre>{{text}}</pre>
+{{/each}}
+</body></html>

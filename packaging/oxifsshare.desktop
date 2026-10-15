@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=oxifsshare
+GenericName=Archive browser
+Comment=Browse an exported document archive offline
+Exec=oxifsshare %f
+Icon=oxifsshare
+Terminal=false
+Categories=Office;Viewer;
+StartupWMClass=oxifsshare
