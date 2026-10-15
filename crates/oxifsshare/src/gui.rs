@@ -16,7 +16,6 @@ use oxifsshare_core::{
 
 use crate::{
     picker::{FolderPicker, Hint},
-    settings,
     textfmt::{display_text, human_size, parse_date_field, short_datetime},
 };
 
@@ -30,6 +29,28 @@ const KINDS: [(FileKind, &str); 6] = [
 ];
 const ROW_HEIGHT: f32 = 20.0;
 const CELL_CHARS: usize = 200;
+
+/// The user's home folder: `$HOME`, or on Windows `%USERPROFILE%` (else drive + path).
+fn home_dir() -> Option<PathBuf> {
+    home_dir_from(|k| std::env::var_os(k), cfg!(windows))
+}
+
+fn home_dir_from(
+    get: impl Fn(&str) -> Option<std::ffi::OsString>,
+    windows: bool,
+) -> Option<PathBuf> {
+    let non_empty = |k: &str| get(k).filter(|v| !v.is_empty());
+    if windows {
+        if let Some(p) = non_empty("USERPROFILE") {
+            return Some(PathBuf::from(p));
+        }
+        let (d, p) = (non_empty("HOMEDRIVE")?, non_empty("HOMEPATH")?);
+        let mut s = d;
+        s.push(p);
+        return Some(PathBuf::from(s));
+    }
+    non_empty("HOME").map(PathBuf::from)
+}
 
 /// Starts a document with the operating system. Replaceable in tests.
 pub type Opener = Box<dyn Fn(&Path) -> Result<(), String>>;
@@ -80,8 +101,6 @@ pub struct App {
     eml: EmlCache,
     picker: Option<FolderPicker>,
     pending_autoload: bool,
-    /// Save the path after a successful load (disabled in tests).
-    remember_path: bool,
 }
 
 enum Action {
@@ -92,12 +111,12 @@ enum Action {
 
 impl App {
     /// Creates the app. With a path, loading starts on the first frame. Without one the
-    /// window starts empty: the last-used path is only filled into the text box (and
-    /// offered by "Browse…"), never loaded on its own.
+    /// window starts completely empty: the path box is blank and nothing is loaded.
+    /// Nothing about previous runs is stored or read.
     pub fn new(initial: Option<PathBuf>, opener: Opener) -> App {
         let (path_input, autoload) = match initial {
             Some(p) => (p.to_string_lossy().into_owned(), true),
-            None => (settings::load_last_path().unwrap_or_default(), false),
+            None => (String::new(), false),
         };
         App {
             path_input,
@@ -123,7 +142,6 @@ impl App {
             eml: EmlCache::new(),
             picker: None,
             pending_autoload: autoload,
-            remember_path: true,
         }
     }
 
@@ -150,9 +168,6 @@ impl App {
         match rx.try_recv() {
             Ok(Ok(archive)) => {
                 self.loading = None;
-                if self.remember_path {
-                    settings::save_last_path(self.path_input.trim());
-                }
                 self.install(archive);
             }
             Ok(Err(e)) => {
@@ -395,9 +410,8 @@ impl App {
                 .on_hover_text("Choose the archive folder")
                 .clicked()
             {
-                let home = std::env::var_os(if cfg!(windows) { "USERPROFILE" } else { "HOME" })
-                    .map(PathBuf::from);
-                self.picker = Some(FolderPicker::new(Path::new(self.path_input.trim()), home));
+                // Always starts in the home folder, whatever is typed in the path box.
+                self.picker = Some(FolderPicker::new(home_dir()));
             }
             if ui
                 .add_enabled(!busy, egui::Button::new("Open archive"))
@@ -786,6 +800,9 @@ impl App {
                     if ui.button("⬆ Up").clicked() {
                         picker.up();
                     }
+                    if ui.button("🏠 Home").clicked() {
+                        picker.go_home(home_dir().as_deref());
+                    }
                     ui.add(
                         egui::Label::new(
                             RichText::new(picker.dir().display().to_string()).strong(),
@@ -943,7 +960,6 @@ mod tests {
         let fx = synth_archive(spec).unwrap();
         let (op, calls) = recorder();
         let mut app = App::new(Some(fx.root.clone()), op);
-        app.remember_path = false;
         let ctx = egui::Context::default();
         let t0 = Instant::now();
         while app.archive.is_none() {
@@ -1067,7 +1083,6 @@ mod tests {
         std::fs::write(d.path().join("1.sh"), b"x").unwrap();
         let failing: Opener = Box::new(|_| Err("no opener installed".into()));
         let mut app = App::new(None, failing);
-        app.remember_path = false;
         app.install(Archive::open(d.path()).unwrap());
         let ctx = egui::Context::default();
         frame(&mut app, &ctx);
@@ -1083,7 +1098,6 @@ mod tests {
     fn bad_path_and_malformed_index_do_not_crash_the_app() {
         let (op, _) = recorder();
         let mut app = App::new(Some(PathBuf::from("/definitely/not/here")), op);
-        app.remember_path = false;
         let ctx = egui::Context::default();
         let t0 = Instant::now();
         while app.error.is_none() {
@@ -1126,7 +1140,6 @@ mod tests {
         let fx = synth_archive(&spec).unwrap();
         let (op, _) = recorder();
         let mut app = App::new(None, op);
-        app.remember_path = false;
         app.install(Archive::open(&fx.root).unwrap());
         let ctx = egui::Context::default();
         frame(&mut app, &ctx);
@@ -1204,7 +1217,6 @@ mod tests {
     fn ctrl_wheel_zooms_the_interface() {
         let ctx = egui::Context::default();
         let mut app = App::new(None, recorder().0);
-        app.remember_path = false;
         let wheel = |dy: f32, ctrl: bool| {
             let mut input = egui::RawInput {
                 screen_rect: Some(egui::Rect::from_min_size(
@@ -1264,7 +1276,6 @@ mod tests {
     fn starts_empty_without_a_path_and_never_loads_by_itself() {
         let (op, _calls) = recorder();
         let mut app = App::new(None, op);
-        app.remember_path = false;
         let ctx = egui::Context::default();
         for _ in 0..20 {
             frame(&mut app, &ctx);
@@ -1284,9 +1295,8 @@ mod tests {
         .unwrap();
         let (op, _calls) = recorder();
         let mut app = App::new(None, op);
-        app.remember_path = false;
         let ctx = egui::Context::default();
-        app.picker = Some(FolderPicker::new(fx.dir.path(), None));
+        app.picker = Some(FolderPicker::new(Some(fx.dir.path().to_path_buf())));
         frame(&mut app, &ctx);
         assert!(app.picker.is_some());
         let mut esc = egui::RawInput::default();
@@ -1300,5 +1310,34 @@ mod tests {
         let _ = ctx.run(esc, |c| app.ui(c));
         assert!(app.picker.is_none(), "Escape closes the browser");
         assert!(app.archive.is_none() && app.loading.is_none());
+    }
+
+    #[test]
+    fn home_folder_lookup() {
+        let env = |pairs: &'static [(&'static str, &'static str)]| {
+            move |k: &str| {
+                pairs
+                    .iter()
+                    .find(|(n, _)| *n == k)
+                    .map(|(_, v)| std::ffi::OsString::from(v))
+            }
+        };
+        assert_eq!(
+            home_dir_from(env(&[("HOME", "/home/u")]), false),
+            Some(PathBuf::from("/home/u"))
+        );
+        assert_eq!(home_dir_from(env(&[("HOME", "")]), false), None);
+        assert_eq!(
+            home_dir_from(env(&[("USERPROFILE", "C:\\Users\\u")]), true),
+            Some(PathBuf::from("C:\\Users\\u"))
+        );
+        assert_eq!(
+            home_dir_from(
+                env(&[("HOMEDRIVE", "D:"), ("HOMEPATH", "\\Users\\u")]),
+                true
+            ),
+            Some(PathBuf::from("D:\\Users\\u"))
+        );
+        assert_eq!(home_dir_from(env(&[("HOMEDRIVE", "D:")]), true), None);
     }
 }

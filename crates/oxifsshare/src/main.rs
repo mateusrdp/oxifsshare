@@ -8,8 +8,6 @@ mod gui;
 #[cfg(feature = "gui")]
 mod picker;
 #[cfg(feature = "gui")]
-mod settings;
-#[cfg(feature = "gui")]
 mod textfmt;
 
 use std::{path::PathBuf, process::ExitCode};

@@ -48,7 +48,7 @@ oxifsshare /path/to/fsshare      # opens that archive straight away
 oxifsshare                       # (or start it from the menu) opens empty; use Browse… or type a path
 ```
 
-- Started without a path, the window is empty. Click **Browse…** to pick the archive folder (look for the green ✔), or type a path and press Enter. The last path you used is filled in for you but never loaded automatically.
+- Started without a path, the window is completely empty (nothing is remembered between runs). Click **Browse…** to pick the archive folder: it always opens in your home folder (look for the green ✔), or type a path and press Enter.
 - Type in the search box to filter on every column (several words must all match; Ctrl+F focuses it).
 - Filter by document type, file kind and date range (`YYYY-MM-DD`). Click a column header to sort (click again to reverse, once more to clear).
 - Click a row for its details; double-click or press Enter to open it with your default application. Up/Down move the selection.

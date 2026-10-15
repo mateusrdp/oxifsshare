@@ -31,23 +31,12 @@ pub enum Hint {
 }
 
 impl FolderPicker {
-    /// Opens the browser at `start` (a folder, or a file whose folder is used),
-    /// falling back to the home folder and then the filesystem root.
-    pub fn new(start: &Path, home: Option<PathBuf>) -> FolderPicker {
-        let mut candidates = Vec::new();
-        if !start.as_os_str().is_empty() {
-            if start.is_dir() {
-                candidates.push(start.to_path_buf());
-            } else if let Some(p) = start.parent() {
-                candidates.push(p.to_path_buf());
-            }
-        }
-        candidates.extend(home);
-        candidates.push(PathBuf::from(if cfg!(windows) { "C:\\" } else { "/" }));
-        let dir = candidates
-            .into_iter()
-            .find(|p| p.is_dir())
-            .unwrap_or_else(|| PathBuf::from("/"));
+    /// Opens the browser in `home` (the user's home folder). If that is unknown or
+    /// not a folder it starts at the filesystem root. It never starts anywhere else:
+    /// not in the archive path field, not in a remembered location.
+    pub fn new(home: Option<PathBuf>) -> FolderPicker {
+        let root = PathBuf::from(if cfg!(windows) { "C:\\" } else { "/" });
+        let dir = home.filter(|p| p.is_dir()).unwrap_or(root);
         let mut p = FolderPicker {
             dir,
             folders: Vec::new(),
@@ -116,6 +105,14 @@ impl FolderPicker {
         self.refresh();
     }
 
+    /// Jumps back to `home` if it is a folder.
+    pub fn go_home(&mut self, home: Option<&Path>) {
+        if let Some(h) = home.filter(|h| h.is_dir()) {
+            self.dir = h.to_path_buf();
+            self.refresh();
+        }
+    }
+
     /// Goes to the parent folder, if there is one.
     pub fn up(&mut self) {
         if let Some(p) = self.dir.parent() {
@@ -148,7 +145,7 @@ mod tests {
             fs::create_dir(t.path().join(d)).unwrap();
         }
         fs::write(t.path().join("file.txt"), b"x").unwrap();
-        let mut p = FolderPicker::new(t.path(), None);
+        let mut p = FolderPicker::new(Some(t.path().to_path_buf()));
         assert_eq!(p.folders(), ["Alpha", "beta", "gamma"]);
         p.show_hidden = true;
         p.refresh();
@@ -160,7 +157,7 @@ mod tests {
     fn navigates_and_refuses_odd_names() {
         let t = TempDir::new("picker-nav").unwrap();
         fs::create_dir_all(t.path().join("a/b")).unwrap();
-        let mut p = FolderPicker::new(t.path(), None);
+        let mut p = FolderPicker::new(Some(t.path().to_path_buf()));
         p.enter("a");
         assert_eq!(p.folders(), ["b"]);
         p.enter("..");
@@ -179,24 +176,36 @@ mod tests {
             ..Spec::default()
         })
         .unwrap();
-        let parent = FolderPicker::new(fx.dir.path(), None);
+        let parent = FolderPicker::new(Some(fx.dir.path().to_path_buf()));
         assert_eq!(parent.hint(), Hint::ArchiveInSubfolder);
-        let mut inner = FolderPicker::new(fx.dir.path(), None);
+        let mut inner = FolderPicker::new(Some(fx.dir.path().to_path_buf()));
         inner.enter("fsshare");
         assert_eq!(inner.hint(), Hint::Archive);
     }
 
     #[test]
-    fn falls_back_when_start_is_missing() {
+    fn starts_in_home_and_falls_back_to_root() {
         let t = TempDir::new("picker-fallback").unwrap();
-        let p = FolderPicker::new(
-            Path::new("/definitely/not/here"),
-            Some(t.path().to_path_buf()),
-        );
+        let p = FolderPicker::new(Some(t.path().to_path_buf()));
         assert_eq!(p.dir(), t.path());
-        // A file path starts in its folder.
-        fs::write(t.path().join("x.xml"), b"x").unwrap();
-        let p = FolderPicker::new(&t.path().join("x.xml"), None);
+        let p = FolderPicker::new(Some(PathBuf::from("/definitely/not/here")));
+        assert_eq!(p.dir(), Path::new(if cfg!(windows) { "C:\\" } else { "/" }));
+        let p = FolderPicker::new(None);
+        assert!(
+            p.dir().parent().is_none(),
+            "no home known: starts at the root"
+        );
+    }
+
+    #[test]
+    fn home_button_returns_home() {
+        let t = TempDir::new("picker-home").unwrap();
+        fs::create_dir(t.path().join("sub")).unwrap();
+        let mut p = FolderPicker::new(Some(t.path().to_path_buf()));
+        p.enter("sub");
+        p.go_home(Some(t.path()));
+        assert_eq!(p.dir(), t.path());
+        p.go_home(None);
         assert_eq!(p.dir(), t.path());
     }
 }

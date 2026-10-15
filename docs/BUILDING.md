@@ -60,7 +60,7 @@ cargo test --workspace --locked
 ```
 
 The path may be the folder holding `fs-share.xml`, its parent, or the XML file.
-Without a path the GUI opens empty (use Browse… or type a path); the last path you used is only filled in, not loaded.
+Without a path the GUI opens empty (use Browse…, which starts in your home folder, or type a path). Nothing is remembered between runs.
 
 A GUI-less build (CLI and `--check` only, 4 crates instead of about 150):
 
@@ -88,7 +88,7 @@ cargo run -p oxifsshare -- /tmp/demo
 ## 5. AppImage and Windows
 
 - **AppImage:** `chmod +x oxifsshare-*-x86_64.AppImage && ./oxifsshare-*-x86_64.AppImage /path/to/fsshare`. Built on Debian 12, so it needs glibc 2.36 or newer. Without FUSE, run it with `APPIMAGE_EXTRACT_AND_RUN=1`. It still needs `xdg-utils` and the graphics libraries from section 2 on the host.
-- **Windows portable:** unzip and run `oxifsshare.exe`. Nothing is installed; the last-used path is stored in `%APPDATA%\oxifsshare\last_path`. **The Windows build has been cross-checked in CI configuration only and has not been run on Windows by the author.**
+- **Windows portable:** unzip and run `oxifsshare.exe`. Nothing is installed and nothing is stored. **The Windows build has been cross-checked in CI configuration only and has not been run on Windows by the author.**
 
 ## 6. Recipe to verify section 2 in a clean container
 

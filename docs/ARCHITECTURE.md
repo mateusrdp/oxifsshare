@@ -31,7 +31,6 @@ crates/oxifsshare-core   library: no GUI dependencies
 crates/oxifsshare        thin binary
   main       CLI parsing: --check, --show-ids, --version, or launch the GUI
   gui        egui front end (feature `gui`, on by default)
-  settings   last archive path in $XDG_CONFIG_HOME/oxifsshare/last_path (plain text)
   picker     built-in folder browser (listing logic is tested without a window)
   textfmt    display helpers (whitespace collapse, truncation, sizes, date fields)
 ```
@@ -90,9 +89,9 @@ Toolkit: `eframe`/`egui` 0.33.3 with `egui_extras` for the virtualised table,
   A missing `xdg-open` is reported with a hint to use Copy path.
 - **Reveal:** opens the containing folder. Selecting the file inside the file
   manager would need D-Bus, which we avoid.
-- **Remembered path:** one plain-text line under the XDG config directory. It only
-  pre-fills the path box; the app never loads an archive unless a path is given on
-  the command line or the user confirms one.
+- **No stored state:** the app writes no settings and remembers no path. A start
+  without an ARCHIVE argument is always empty, and "Browse…" always opens in the
+  home folder.
 - **Folder picker:** a small built-in browser (`picker.rs`, egui only). A native
   dialog would need `rfd`, whose pure-Rust portal backend pulls in a large async
   stack, so it was rejected. The built-in one lists folders and marks where
