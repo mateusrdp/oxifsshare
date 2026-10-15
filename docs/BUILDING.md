@@ -9,7 +9,7 @@
 > *names* for sid are the same names Debian uses, but please confirm them with the
 > container recipe at the end and report differences.
 
-Most people do not need to build: download the Debian sid tarball, the AppImage or
+Most people do not need to build: download the Debian sid `.deb` (`sudo apt install ./oxifsshare_*.deb`), the AppImage or
 the Windows zip from the GitHub Releases page.
 
 ## 1. Rust toolchain: apt or rustup?
@@ -27,7 +27,7 @@ Rust. Check with `rustc --version`; if it is older than 1.89, use rustup:
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```
 
-The release workflow builds the sid tarball with the apt toolchain, so if apt's
+The release workflow builds the sid `.deb` with the apt toolchain, so if apt's
 Rust ever falls below the MSRV, that job fails visibly.
 
 ## 2. Packages
@@ -60,7 +60,7 @@ cargo test --workspace --locked
 ```
 
 The path may be the folder holding `fs-share.xml`, its parent, or the XML file.
-Without a path the GUI opens the last archive you used, or an empty window.
+Without a path the GUI opens empty (use Browse… or type a path); the last path you used is only filled in, not loaded.
 
 A GUI-less build (CLI and `--check` only, 4 crates instead of about 150):
 

@@ -15,5 +15,9 @@
 
 - Milestone 5: `.msg` to `.eml` conversion (pure Rust, `cfb`), converted on open into a private temporary folder, "Open original .msg" fallback, `[Messages]` section in `--check`, `docs/MSG.md`, synthetic `.msg` builder and tests.
 
+- Debian sid release is now an installable `.deb` (replaces the tarball): installs `/usr/bin/oxifsshare`, an **OxiFSShare** menu entry under *Office*, icons and licence notices; the workflow test-installs it with apt in `debian:sid`.
+- Built-in folder browser ("Browse…").
+
 ### Changed
+- Without an ARCHIVE path the GUI now starts empty. The last-used path is only pre-filled, never loaded automatically. Window title and menu name are "OxiFSShare".
 - MSRV set to 1.89 (the lowest toolchain verified).

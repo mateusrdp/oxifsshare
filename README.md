@@ -44,9 +44,11 @@ Archives like this contain sensitive personal and financial information.
 ## Using the GUI
 
 ```
-oxifsshare /path/to/fsshare      # or run it and type the path
+oxifsshare /path/to/fsshare      # opens that archive straight away
+oxifsshare                       # (or start it from the menu) opens empty; use Browse… or type a path
 ```
 
+- Started without a path, the window is empty. Click **Browse…** to pick the archive folder (look for the green ✔), or type a path and press Enter. The last path you used is filled in for you but never loaded automatically.
 - Type in the search box to filter on every column (several words must all match; Ctrl+F focuses it).
 - Filter by document type, file kind and date range (`YYYY-MM-DD`). Click a column header to sort (click again to reverse, once more to clear).
 - Click a row for its details; double-click or press Enter to open it with your default application. Up/Down move the selection.
@@ -71,7 +73,7 @@ print the numeric IDs of unmatched rows and files. See `docs/FORMAT.md` and
 
 Download from the GitHub Releases page (each file is listed in `SHA256SUMS`):
 
-- **Debian sid:** `oxifsshare-<version>-debian-sid-x86_64.tar.gz`, built on Debian sid.
+- **Debian sid:** `oxifsshare_<version>+build.<N>_amd64.deb`, built on Debian sid. Install with `sudo apt install ./oxifsshare_*.deb` (apt fetches the dependencies; `dpkg -i` also works if they are already present). It adds **OxiFSShare** to the desktop menu under *Office* and the command `oxifsshare`. Remove it with `sudo apt remove oxifsshare`.
 - **AppImage:** `oxifsshare-<version>-x86_64.AppImage`, built on Debian 12, so it runs on Debian 12 and newer systems with glibc 2.36 or newer.
 - **Windows (portable):** `oxifsshare-<version>-windows-x86_64.zip`, unzip and run. Not tested on Windows by the author yet.
 

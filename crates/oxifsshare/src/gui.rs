@@ -15,6 +15,7 @@ use oxifsshare_core::{
 };
 
 use crate::{
+    picker::{FolderPicker, Hint},
     settings,
     textfmt::{display_text, human_size, parse_date_field, short_datetime},
 };
@@ -43,7 +44,7 @@ pub fn run(initial: Option<PathBuf>) -> Result<(), eframe::Error> {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([1280.0, 760.0])
             .with_min_inner_size([700.0, 420.0])
-            .with_title("oxifsshare")
+            .with_title("OxiFSShare")
             .with_app_id("oxifsshare"),
         ..Default::default()
     };
@@ -77,6 +78,7 @@ pub struct App {
     focus_search: bool,
     opener: Opener,
     eml: EmlCache,
+    picker: Option<FolderPicker>,
     pending_autoload: bool,
     /// Save the path after a successful load (disabled in tests).
     remember_path: bool,
@@ -89,17 +91,13 @@ enum Action {
 }
 
 impl App {
-    /// Creates the app. With a path, or a remembered one that still exists, loading starts on the first frame.
+    /// Creates the app. With a path, loading starts on the first frame. Without one the
+    /// window starts empty: the last-used path is only filled into the text box (and
+    /// offered by "Browse…"), never loaded on its own.
     pub fn new(initial: Option<PathBuf>, opener: Opener) -> App {
         let (path_input, autoload) = match initial {
             Some(p) => (p.to_string_lossy().into_owned(), true),
-            None => match settings::load_last_path() {
-                Some(p) => {
-                    let exists = Path::new(&p).exists();
-                    (p, exists)
-                }
-                None => (String::new(), false),
-            },
+            None => (settings::load_last_path().unwrap_or_default(), false),
         };
         App {
             path_input,
@@ -123,6 +121,7 @@ impl App {
             focus_search: false,
             opener,
             eml: EmlCache::new(),
+            picker: None,
             pending_autoload: autoload,
             remember_path: true,
         }
@@ -350,6 +349,7 @@ impl App {
         }
         egui::CentralPanel::default().show(ctx, |ui| self.table(ui));
         self.confirm_dialog(ctx);
+        self.picker_window(ctx);
     }
 
     fn handle_keys(&mut self, ctx: &egui::Context) {
@@ -386,10 +386,19 @@ impl App {
             let r = ui.add(
                 egui::TextEdit::singleline(&mut self.path_input)
                     .hint_text("folder with fs-share.xml (or its parent)")
-                    .desired_width(ui.available_width() - 190.0),
+                    .desired_width(ui.available_width() - 260.0),
             );
             let enter = r.lost_focus() && ui.input(|i| i.key_pressed(Key::Enter));
             let busy = self.loading.is_some();
+            if ui
+                .add_enabled(!busy, egui::Button::new("Browse…"))
+                .on_hover_text("Choose the archive folder")
+                .clicked()
+            {
+                let home = std::env::var_os(if cfg!(windows) { "USERPROFILE" } else { "HOME" })
+                    .map(PathBuf::from);
+                self.picker = Some(FolderPicker::new(Path::new(self.path_input.trim()), home));
+            }
             if ui
                 .add_enabled(!busy, egui::Button::new("Open archive"))
                 .clicked()
@@ -759,6 +768,91 @@ impl App {
         if let Some(p) = copy {
             ctx.copy_text(p);
             self.notice = Some("Path copied to the clipboard.".into());
+        }
+    }
+
+    fn picker_window(&mut self, ctx: &egui::Context) {
+        let Some(picker) = &mut self.picker else {
+            return;
+        };
+        let mut choose: Option<PathBuf> = None;
+        let mut close = false;
+        egui::Window::new("Choose the archive folder")
+            .collapsible(false)
+            .default_size([560.0, 460.0])
+            .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+            .show(ctx, |ui| {
+                ui.horizontal(|ui| {
+                    if ui.button("⬆ Up").clicked() {
+                        picker.up();
+                    }
+                    ui.add(
+                        egui::Label::new(
+                            RichText::new(picker.dir().display().to_string()).strong(),
+                        )
+                        .truncate(),
+                    );
+                });
+                if let Some(e) = picker.error() {
+                    ui.colored_label(Color32::from_rgb(220, 70, 70), format!("⚠ {e}"));
+                }
+                match picker.hint() {
+                    Hint::Archive => {
+                        ui.colored_label(
+                            Color32::from_rgb(70, 170, 90),
+                            "✔ fs-share.xml is in this folder",
+                        );
+                    }
+                    Hint::ArchiveInSubfolder => {
+                        ui.colored_label(
+                            Color32::from_rgb(70, 170, 90),
+                            "✔ an fsshare folder with fs-share.xml is inside",
+                        );
+                    }
+                    Hint::None => {
+                        ui.weak("No fs-share.xml here. Open folders until you see the ✔ mark.");
+                    }
+                }
+                let mut hidden = picker.show_hidden;
+                if ui.checkbox(&mut hidden, "show hidden folders").changed() {
+                    picker.show_hidden = hidden;
+                    picker.refresh();
+                }
+                ui.separator();
+                let mut enter: Option<String> = None;
+                egui::ScrollArea::vertical()
+                    .max_height(ui.available_height() - 40.0)
+                    .auto_shrink([false, false])
+                    .show(ui, |ui| {
+                        for name in picker.folders() {
+                            if ui.selectable_label(false, format!("📁 {name}")).clicked() {
+                                enter = Some(name.clone());
+                            }
+                        }
+                        if picker.folders().is_empty() {
+                            ui.weak("(no sub-folders)");
+                        }
+                    });
+                if let Some(n) = enter {
+                    picker.enter(&n);
+                }
+                ui.separator();
+                ui.horizontal(|ui| {
+                    if ui.button("Use this folder").clicked() {
+                        choose = Some(picker.dir().to_path_buf());
+                    }
+                    if ui.button("Cancel").clicked() {
+                        close = true;
+                    }
+                });
+            });
+        if close || ctx.input(|i| i.key_pressed(Key::Escape)) {
+            self.picker = None;
+        }
+        if let Some(p) = choose {
+            self.picker = None;
+            self.path_input = p.to_string_lossy().into_owned();
+            self.start_load(ctx);
         }
     }
 
@@ -1164,5 +1258,47 @@ mod tests {
             run(&ctx, &mut app, wheel(1.0, true));
         }
         assert!(ctx.zoom_factor() <= 4.0);
+    }
+
+    #[test]
+    fn starts_empty_without_a_path_and_never_loads_by_itself() {
+        let (op, _calls) = recorder();
+        let mut app = App::new(None, op);
+        app.remember_path = false;
+        let ctx = egui::Context::default();
+        for _ in 0..20 {
+            frame(&mut app, &ctx);
+            std::thread::sleep(Duration::from_millis(5));
+        }
+        assert!(app.archive.is_none() && app.loading.is_none());
+        assert!(app.rows.is_empty() && app.error.is_none());
+    }
+
+    #[test]
+    fn folder_browser_renders_and_can_be_cancelled() {
+        let fx = synth_archive(&Spec {
+            rows: 5,
+            pass_parent: true,
+            ..Spec::default()
+        })
+        .unwrap();
+        let (op, _calls) = recorder();
+        let mut app = App::new(None, op);
+        app.remember_path = false;
+        let ctx = egui::Context::default();
+        app.picker = Some(FolderPicker::new(fx.dir.path(), None));
+        frame(&mut app, &ctx);
+        assert!(app.picker.is_some());
+        let mut esc = egui::RawInput::default();
+        esc.events.push(egui::Event::Key {
+            key: Key::Escape,
+            physical_key: None,
+            pressed: true,
+            repeat: false,
+            modifiers: egui::Modifiers::NONE,
+        });
+        let _ = ctx.run(esc, |c| app.ui(c));
+        assert!(app.picker.is_none(), "Escape closes the browser");
+        assert!(app.archive.is_none() && app.loading.is_none());
     }
 }

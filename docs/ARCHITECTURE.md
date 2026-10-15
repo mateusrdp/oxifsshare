@@ -32,6 +32,7 @@ crates/oxifsshare        thin binary
   main       CLI parsing: --check, --show-ids, --version, or launch the GUI
   gui        egui front end (feature `gui`, on by default)
   settings   last archive path in $XDG_CONFIG_HOME/oxifsshare/last_path (plain text)
+  picker     built-in folder browser (listing logic is tested without a window)
   textfmt    display helpers (whitespace collapse, truncation, sizes, date fields)
 ```
 
@@ -89,9 +90,13 @@ Toolkit: `eframe`/`egui` 0.33.3 with `egui_extras` for the virtualised table,
   A missing `xdg-open` is reported with a hint to use Copy path.
 - **Reveal:** opens the containing folder. Selecting the file inside the file
   manager would need D-Bus, which we avoid.
-- **Remembered path:** one plain-text line under the XDG config directory.
-- **Folder picker:** not included. The only pure-Rust route (`rfd` with the
-  portal backend) pulls in a large async stack. Type or paste the path.
+- **Remembered path:** one plain-text line under the XDG config directory. It only
+  pre-fills the path box; the app never loads an archive unless a path is given on
+  the command line or the user confirms one.
+- **Folder picker:** a small built-in browser (`picker.rs`, egui only). A native
+  dialog would need `rfd`, whose pure-Rust portal backend pulls in a large async
+  stack, so it was rejected. The built-in one lists folders and marks where
+  `fs-share.xml` is.
 - **Testing without a display:** `App::ui` takes an `egui::Context`, so tests run
   real frames headless (no window, no GL) for loading, filtering, sorting,
   keyboard selection, the open/confirm/reveal flows with a recording opener,
@@ -121,7 +126,10 @@ verification; 0.34 and newer need Rust 1.92 or later.
 
 `.github/workflows/release.yml` runs on every push to `main` that touches more than
 docs and workflows. Jobs: `licenses` (cargo-about builds `THIRD_PARTY_LICENSES.html`),
-then in parallel `linux-sid` (`debian:sid` container, apt Rust, tests in release mode),
+then in parallel `linux-sid` (`debian:sid` container, apt Rust, tests in release mode,
+then a `.deb` built with `dpkg-deb`, whose dependencies come from `dpkg-shlibdeps` plus a
+hand-written list of the libraries loaded at run time, then installed with apt in the
+same container as a smoke test),
 `appimage` (`debian:bookworm`, rustup stable, pinned and checksum-verified
 `appimagetool` 1.9.1 and `type2-runtime` 20251108, `--version` smoke test) and
 `windows` (MSVC target, static C runtime, zip). A final `release` job, the only one
@@ -130,6 +138,11 @@ with `contents: write`, writes `SHA256SUMS` and calls `gh release create`.
 - **Tags:** the first run for a Cargo version creates `v<version>`; later runs create
   the pre-release `v<version>-build.<run_number>`. Tags made with `GITHUB_TOKEN` do not
   trigger workflows, so there is no loop; a concurrency group queues runs.
+- **Package version:** `<Cargo version>+build.<run_number>`. The `+` makes every build
+  sort after the previous one, so apt treats it as an upgrade. The package installs
+  `/usr/bin/oxifsshare`, a menu entry (*Office*), icons and the licence notices.
+  No maintainer scripts are needed: the desktop and icon caches are refreshed by
+  triggers that Debian already ships.
 - **Pre-release cleanup:** only the 15 newest `-build.N` releases are kept.
 - **Actions** are pinned by commit SHA (checkout, upload/download-artifact); Dependabot
   updates them. Tools downloaded in the AppImage job are pinned by version and SHA-256.

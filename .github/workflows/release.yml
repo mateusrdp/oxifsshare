@@ -1,7 +1,7 @@
 name: Release
 
 # Runs on every push to main that changes code (and by hand). Builds three things:
-#   1. a Debian sid build (inside a debian:sid container)
+#   1. a Debian sid .deb package (built and test-installed inside a debian:sid container)
 #   2. an AppImage (inside a debian:bookworm container, so it also runs on older systems)
 #   3. a Windows portable zip (one statically linked .exe, no installer)
 # then publishes a GitHub Release with SHA256SUMS.
@@ -81,19 +81,74 @@ jobs:
         run: cargo test --workspace --release --locked
       - name: Build
         run: cargo build --release --locked -p oxifsshare
-      - name: Package
+      - name: Package (.deb)
         run: |
           VERSION=$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)
-          NAME="oxifsshare-${VERSION}-debian-sid-x86_64"
-          mkdir -p "dist/${NAME}"
-          cp target/release/oxifsshare README.md LICENSE THIRD_PARTY_LICENSES.html "dist/${NAME}/"
-          tar -C dist -czf "dist/${NAME}.tar.gz" "${NAME}"
-          rm -rf "dist/${NAME}"
-          ls -l dist
+          # Every build gets a higher Debian version than the one before, so apt/dpkg
+          # always treat a newer build as an upgrade ("+" sorts after the plain version).
+          DEBVER="${VERSION}+build.${GITHUB_RUN_NUMBER}"
+          PKG="oxifsshare_${DEBVER}_amd64"
+          ROOT="dist/${PKG}"
+          rm -rf dist && mkdir -p "${ROOT}/DEBIAN"
+          install -Dm755 target/release/oxifsshare "${ROOT}/usr/bin/oxifsshare"
+          install -Dm644 packaging/oxifsshare.desktop "${ROOT}/usr/share/applications/oxifsshare.desktop"
+          install -Dm644 packaging/oxifsshare.png "${ROOT}/usr/share/icons/hicolor/256x256/apps/oxifsshare.png"
+          install -Dm644 packaging/oxifsshare.svg "${ROOT}/usr/share/icons/hicolor/scalable/apps/oxifsshare.svg"
+          DOC="${ROOT}/usr/share/doc/oxifsshare"
+          install -Dm644 LICENSE "${DOC}/copyright"
+          install -Dm644 README.md THIRD_PARTY_LICENSES.html -t "${DOC}"
+          gzip -9n -c CHANGELOG.md > "${DOC}/changelog.gz"
+          chmod 644 "${DOC}/changelog.gz"
+          # Library dependencies of the binary itself (libc and friends).
+          mkdir -p debian
+          printf 'Source: oxifsshare\n\nPackage: oxifsshare\nArchitecture: any\n' > debian/control
+          SHLIBS=$(dpkg-shlibdeps -O -e"${ROOT}/usr/bin/oxifsshare" 2>/dev/null | sed 's/^shlibs:Depends=//')
+          rm -rf debian
+          echo "Binary needs: ${SHLIBS}"
+          test -n "${SHLIBS}"
+          # The window system, OpenGL and keyboard libraries are loaded at run time,
+          # so they are listed by hand. xdg-utils provides xdg-open.
+          RUNTIME="xdg-utils, libgl1, libegl1, libxkbcommon0, libxkbcommon-x11-0, libwayland-client0, libx11-6, libxcursor1, libxrandr2, libxi6"
+          SIZE=$(du -sk "${ROOT}/usr" | cut -f1)
+          {
+            echo "Package: oxifsshare"
+            echo "Version: ${DEBVER}"
+            echo "Architecture: amd64"
+            echo "Section: utils"
+            echo "Priority: optional"
+            echo "Maintainer: oxifsshare maintainers <${GITHUB_REPOSITORY_OWNER}@users.noreply.github.com>"
+            echo "Installed-Size: ${SIZE}"
+            echo "Depends: ${SHLIBS}, ${RUNTIME}"
+            echo "Recommends: libgl1-mesa-dri"
+            echo "Homepage: https://github.com/${GITHUB_REPOSITORY}"
+            echo "Description: offline browser for an exported document archive"
+            echo " OxiFSShare opens a document archive (an fs-share.xml index plus its"
+            echo " documents) exported by a discontinued Windows-only viewer, lists every"
+            echo " entry with its metadata, lets you search, filter and sort, and opens"
+            echo " documents with your default applications. Outlook .msg files are"
+            echo " converted to .eml when opened. It works fully offline."
+            echo " ."
+            echo " This project is not affiliated with the vendor of the original viewer."
+          } > "${ROOT}/DEBIAN/control"
+          cat "${ROOT}/DEBIAN/control"
+          dpkg-deb --root-owner-group --build "${ROOT}" "dist/${PKG}.deb"
+          rm -rf "${ROOT}"
+          dpkg-deb --info "dist/${PKG}.deb"
+          dpkg-deb --contents "dist/${PKG}.deb"
+      - name: Test installing the package (apt resolves the dependencies)
+        run: |
+          apt-get install -y --no-install-recommends ./dist/oxifsshare_*.deb desktop-file-utils
+          oxifsshare --version
+          desktop-file-validate /usr/share/applications/oxifsshare.desktop
+          test -f /usr/share/icons/hicolor/256x256/apps/oxifsshare.png
+          cargo run --release --locked -p oxifsshare-core --example gen_fixture -- /tmp/demo 50 financial
+          oxifsshare --check /tmp/demo | head -20
+          apt-get remove -y oxifsshare
+          test ! -e /usr/bin/oxifsshare
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: dist-linux-sid
-          path: dist/*.tar.gz
+          path: dist/*.deb
           if-no-files-found: error
 
   appimage:

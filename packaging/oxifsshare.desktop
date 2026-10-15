@@ -1,8 +1,9 @@
 [Desktop Entry]
 Type=Application
-Name=oxifsshare
+Name=OxiFSShare
 GenericName=Archive browser
 Comment=Browse an exported document archive offline
+Keywords=archive;documents;viewer;fsshare;
 Exec=oxifsshare %f
 Icon=oxifsshare
 Terminal=false

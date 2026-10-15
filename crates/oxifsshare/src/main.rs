@@ -6,6 +6,8 @@
 #[cfg(feature = "gui")]
 mod gui;
 #[cfg(feature = "gui")]
+mod picker;
+#[cfg(feature = "gui")]
 mod settings;
 #[cfg(feature = "gui")]
 mod textfmt;
