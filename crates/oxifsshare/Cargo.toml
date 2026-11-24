@@ -20,5 +20,5 @@ gui = ["dep:eframe", "dep:egui_extras", "dep:open"]
 [dependencies]
 oxifsshare-core = { path = "../oxifsshare-core" }
 eframe = { version = "=0.33.3", default-features = false, features = ["default_fonts", "glow", "x11", "wayland"], optional = true }
-egui_extras = { version = "=0.33.3", default-features = false, optional = true }
+egui_extras = { version = "=0.37.0", default-features = false, optional = true }
 open = { version = "5.4", optional = true }
