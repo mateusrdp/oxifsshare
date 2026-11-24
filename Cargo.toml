@@ -6,9 +6,9 @@ members = ["crates/oxifsshare-core", "crates/oxifsshare"]
 version = "0.1.0"
 edition = "2021"
 # MSRV: see docs/CONTRIBUTING.md (milestone 4) and the "MSRV policy" section of README.md.
-# 1.89 is the lowest toolchain this project verifies in CI and locally (quick-xml 0.42 itself needs 1.86).
-# It will be raised in milestone 3 if the chosen GUI toolkit needs a newer compiler.
-rust-version = "1.89"
+# 1.95 is the lowest toolchain this project verifies in CI and locally (egui/eframe 0.37 require it).
+# It is raised only when a dependency (currently the GUI toolkit) needs a newer compiler.
+rust-version = "1.95"
 license = "MIT"
 repository = "https://github.com/mateusrdp/oxifsshare"
 authors = ["The oxifsshare contributors"]

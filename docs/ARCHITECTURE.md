@@ -71,7 +71,7 @@ at the start, middle and end of a value, an unknown entity, CDATA and CRLF.
 
 ## GUI (milestone 3)
 
-Toolkit: `eframe`/`egui` 0.33.3 with `egui_extras` for the virtualised table,
+Toolkit: `eframe`/`egui` 0.37.0 with `egui_extras` for the virtualised table,
 `glow` (OpenGL) rendering, X11 and Wayland back ends. Versions are pinned with
 `=` so a Dependabot bump is a deliberate, reviewed change (see below).
 
@@ -118,8 +118,9 @@ is 4.
 egui is the most widely used pure-Rust GUI toolkit (about 20 million `eframe`
 downloads against about 3 million for `iced`), has an official virtualised table,
 and its immediate-mode model keeps filter and sort state simple. Version
-0.33.3 is the newest release that builds on the Rust 1.91 toolchain used for
-verification; 0.34 and newer need Rust 1.92 or later.
+0.37.0 needs Rust 1.95, which is therefore the project's MSRV. `eframe` and
+`egui_extras` must always share the same egui version, so Dependabot updates them
+as one group (see `.github/dependabot.yml`).
 
 ## Release pipeline (milestone 4)
 
@@ -187,4 +188,4 @@ Run `cargo test --release -p oxifsshare-core -- --ignored --nocapture` to measur
 
 ## Toolchain
 
-MSRV 1.89 (lowest version verified by running the tests). The GUI crate may raise it in milestone 3.
+MSRV 1.95 (required by egui/eframe 0.37). It is raised only when a dependency needs a newer compiler.

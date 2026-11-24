@@ -33,7 +33,7 @@ cargo test --workspace --locked
 ## MSRV policy
 
 `rust-version` in the root `Cargo.toml` is the lowest Rust verified by running the
-tests (currently 1.89). CI builds with it. Raising it is allowed in a minor release
+tests (currently 1.95). CI builds with it. Raising it is allowed in a minor release
 and must be recorded in `CHANGELOG.md`. GUI crate upgrades (`eframe`/`egui_extras`
 are pinned with `=`) are what usually force a raise.
 

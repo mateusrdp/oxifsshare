@@ -344,7 +344,9 @@ impl App {
         }
     }
 
-    pub fn ui(&mut self, ctx: &egui::Context) {
+    pub fn ui(&mut self, root: &mut egui::Ui) {
+        let ctx = root.ctx().clone();
+        let ctx = &ctx;
         Self::apply_zoom(ctx);
         if std::mem::take(&mut self.pending_autoload) {
             self.start_load(ctx);
@@ -353,16 +355,16 @@ impl App {
         self.refresh();
         self.handle_keys(ctx);
 
-        egui::TopBottomPanel::top("top").show(ctx, |ui| self.top_bar(ui, ctx));
-        egui::TopBottomPanel::bottom("status").show(ctx, |ui| self.status_bar(ui));
+        egui::Panel::top("top").show(root, |ui| self.top_bar(ui, ctx));
+        egui::Panel::bottom("status").show(root, |ui| self.status_bar(ui));
         if self.archive.is_some() {
-            egui::SidePanel::right("details")
+            egui::Panel::right("details")
                 .resizable(true)
-                .default_width(460.0)
-                .min_width(260.0)
-                .show(ctx, |ui| self.details(ui, ctx));
+                .default_size(460.0)
+                .min_size(260.0)
+                .show(root, |ui| self.details(ui, ctx));
         }
-        egui::CentralPanel::default().show(ctx, |ui| self.table(ui));
+        egui::CentralPanel::default().show(root, |ui| self.table(ui));
         self.confirm_dialog(ctx);
         self.picker_window(ctx);
     }
@@ -371,7 +373,7 @@ impl App {
         if ctx.input_mut(|i| i.consume_key(egui::Modifiers::COMMAND, Key::F)) {
             self.focus_search = true;
         }
-        if ctx.wants_keyboard_input() {
+        if ctx.egui_wants_keyboard_input() {
             return;
         }
         let (down, up, enter) = ctx.input(|i| {
@@ -434,7 +436,7 @@ impl App {
         }
         if self.archive.is_some() {
             ui.horizontal_wrapped(|ui| {
-                let search_id = egui::Id::new("search_box");
+                let search_id = egui::Id::unique("search_box");
                 if self.focus_search {
                     ui.memory_mut(|m| m.request_focus(search_id));
                     self.focus_search = false;
@@ -914,8 +916,8 @@ fn kind_cell(ui: &mut egui::Ui, a: &Archive, row: usize) {
 }
 
 impl eframe::App for App {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        self.ui(ctx);
+    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        App::ui(self, ui);
     }
 }
 
@@ -953,7 +955,8 @@ mod tests {
             )),
             ..Default::default()
         };
-        let _ = ctx.run(input, |ctx| app.ui(ctx));
+        // egui 0.37 panics on drop if texture deltas are left unapplied; tests render nothing.
+        ctx.run_ui(input, |ui| app.ui(ui)).textures_delta.clear();
     }
 
     fn loaded_app(spec: &Spec) -> (App, egui::Context, Calls, oxifsshare_core::testgen::Fixture) {
@@ -1228,6 +1231,8 @@ mod tests {
             input.events.push(egui::Event::MouseWheel {
                 unit: egui::MouseWheelUnit::Line,
                 delta: egui::vec2(0.0, dy),
+                phase: egui::TouchPhase::Move,
+                source: egui::MouseWheelSource::Wheel,
                 modifiers: egui::Modifiers {
                     ctrl,
                     command: ctrl,
@@ -1242,7 +1247,8 @@ mod tests {
             for n in 0..12 {
                 clock += 0.016;
                 input.time = Some(clock);
-                let _ = ctx.run(input, |c| app.ui(c));
+                // egui 0.37 panics on drop if texture deltas are left unapplied; tests render nothing.
+                ctx.run_ui(input, |ui| app.ui(ui)).textures_delta.clear();
                 input = egui::RawInput {
                     screen_rect: Some(egui::Rect::from_min_size(
                         egui::Pos2::ZERO,
@@ -1307,7 +1313,8 @@ mod tests {
             repeat: false,
             modifiers: egui::Modifiers::NONE,
         });
-        let _ = ctx.run(esc, |c| app.ui(c));
+        // egui 0.37 panics on drop if texture deltas are left unapplied; tests render nothing.
+        ctx.run_ui(esc, |ui| app.ui(ui)).textures_delta.clear();
         assert!(app.picker.is_none(), "Escape closes the browser");
         assert!(app.archive.is_none() && app.loading.is_none());
     }

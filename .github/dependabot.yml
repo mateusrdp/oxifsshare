@@ -5,6 +5,16 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+    groups:
+      # eframe and egui_extras (and egui itself) must move together; a lone bump
+      # of one of them builds two incompatible copies of egui.
+      egui:
+        patterns:
+          - "eframe"
+          - "egui*"
+          - "epaint*"
+          - "emath"
+          - "ecolor"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:

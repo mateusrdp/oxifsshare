@@ -16,12 +16,12 @@ the Windows zip from the GitHub Releases page.
 
 | | `apt install cargo rustc` | rustup |
 |---|---|---|
-| Version | Whatever sid ships; must be at least the MSRV in `Cargo.toml` (1.89) | Always current stable |
+| Version | Whatever sid ships; must be at least the MSRV in `Cargo.toml` (1.95) | Always current stable |
 | Updates | With the system | `rustup update` |
 | Fits Debian policy | Yes | Installs into `~/.cargo` |
 
 **Recommendation:** use the apt packages on Debian sid, because sid tracks recent
-Rust. Check with `rustc --version`; if it is older than 1.89, use rustup:
+Rust. Check with `rustc --version`; if it is older than 1.95, use rustup:
 
 ```
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
