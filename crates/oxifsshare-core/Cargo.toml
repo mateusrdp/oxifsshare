@@ -14,4 +14,4 @@ workspace = true
 
 [dependencies]
 quick-xml = "0.42"
-cfb = "0.15"
+cfb = "0.16"
