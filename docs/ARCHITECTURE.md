@@ -126,7 +126,7 @@ as one group (see `.github/dependabot.yml`).
 
 `.github/workflows/release.yml` runs on every push to `main` that touches more than
 docs and workflows. Jobs: `licenses` (cargo-about builds `THIRD_PARTY_LICENSES.html`),
-then in parallel `linux-sid` (`debian:sid` container, apt Rust, tests in release mode,
+then in parallel `linux-sid` (`debian:sid` container, rustup stable, tests in release mode,
 then a `.deb` built with `dpkg-deb`, whose dependencies come from `dpkg-shlibdeps` plus a
 hand-written list of the libraries loaded at run time, then installed with apt in the
 same container as a smoke test),

@@ -2,9 +2,9 @@
 
 > **Verification status.** The sandbox used to develop this project has no Docker
 > and runs Ubuntu 24.04, not Debian sid. The commands below are therefore
-> **UNVERIFIED on a clean `debian:sid`**. What *was* verified (on Ubuntu 24.04 with
-> Rust 1.91 and 1.89): the cargo commands, the tests, and running the GUI under a
-> virtual X display with software OpenGL after installing `libgl1-mesa-dri`,
+> **UNVERIFIED on a clean `debian:sid`**. What *was* verified on Ubuntu 24.04: the cargo commands and
+> tests with current stable Rust (1.97), and, with earlier toolchains and egui 0.33,
+> running the GUI under a virtual X display with software OpenGL after installing `libgl1-mesa-dri`,
 > `libglx-mesa0`, `libegl1`, `libxkbcommon-x11-0` and `x11-utils`. The package
 > *names* for sid are the same names Debian uses, but please confirm them with the
 > container recipe at the end and report differences.
@@ -12,23 +12,23 @@
 Most people do not need to build: download the Debian sid `.deb` (`sudo apt install ./oxifsshare_*.deb`), the AppImage or
 the Windows zip from the GitHub Releases page.
 
-## 1. Rust toolchain: apt or rustup?
+## 1. Rust toolchain: rustup
 
-| | `apt install cargo rustc` | rustup |
-|---|---|---|
-| Version | Whatever sid ships; must be at least the MSRV in `Cargo.toml` (1.95) | Always current stable |
-| Updates | With the system | `rustup update` |
-| Fits Debian policy | Yes | Installs into `~/.cargo` |
-
-**Recommendation:** use the apt packages on Debian sid, because sid tracks recent
-Rust. Check with `rustc --version`; if it is older than 1.95, use rustup:
+The project is built with a **rustup-managed toolchain**, locally and in every CI
+and release job. The MSRV (1.95, see `Cargo.toml`) is higher than most distribution
+packages provide, and rustup gives every contributor the same compiler, `rustfmt`
+and `clippy`. Do not use `apt install cargo rustc`.
 
 ```
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+sudo apt install curl
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+. "$HOME/.cargo/env"
 ```
 
-The release workflow builds the sid `.deb` with the apt toolchain, so if apt's
-Rust ever falls below the MSRV, that job fails visibly.
+The `rust-toolchain.toml` in the repository root makes rustup select current stable and
+install `rustfmt` and `clippy` automatically the first time you run `cargo` in the
+project. Update with `rustup update`. To check the MSRV, run
+`RUSTUP_TOOLCHAIN=1.95 cargo test --workspace --locked`.
 
 ## 2. Packages
 
@@ -36,7 +36,7 @@ Build (linker and C toolchain; no `-dev` packages are needed because the
 graphics, windowing and keyboard libraries are loaded at run time):
 
 ```
-sudo apt install build-essential cargo rustc git
+sudo apt install build-essential curl git
 ```
 
 Run (needed by the GUI at run time; `--check` needs none of these):
@@ -95,7 +95,9 @@ cargo run -p oxifsshare -- /tmp/demo
 ```
 docker run --rm -it -v "$PWD":/src -w /src debian:sid bash -c '
   apt-get update &&
-  apt-get install -y --no-install-recommends ca-certificates build-essential cargo rustc git &&
+  apt-get install -y --no-install-recommends ca-certificates build-essential curl git &&
+  curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal &&
+  . "$HOME/.cargo/env" &&
   rustc --version &&
   cargo build --release --locked &&
   cargo test --workspace --locked &&

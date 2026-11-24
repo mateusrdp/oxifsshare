@@ -22,4 +22,5 @@
 - Without an ARCHIVE path the GUI starts completely empty. The remembered-path feature was removed: the app no longer reads or writes any settings. "Browse…" always opens in the home folder. Window title and menu name are "OxiFSShare".
 - MSRV set to 1.89 (the lowest toolchain verified).
 - Upgraded the GUI toolkit to eframe/egui_extras 0.37.0 (completes Dependabot PRs #2 and #3, which must land together); MSRV raised to 1.95, which egui 0.37 requires. Ported to the new `egui::Panel` and `eframe::App::ui` APIs.
+- Toolchain: everything (local builds, CI, the Debian sid release job) now uses rustup; added `rust-toolchain.toml`; `BUILDING.md` no longer recommends apt `cargo`/`rustc`.
 - Refreshed `Cargo.lock` (clears RUSTSEC-2026-0592 `url`, RUSTSEC-2026-0486 `rustix`, and the yanked `clipboard-win`).

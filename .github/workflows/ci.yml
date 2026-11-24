@@ -57,7 +57,9 @@ jobs:
       - name: Install MSRV toolchain
         run: |
           rustup toolchain install "${{ steps.msrv.outputs.version }}" --profile minimal
-          rustup default "${{ steps.msrv.outputs.version }}"
-          rustc --version
+          # rust-toolchain.toml pins "stable"; RUSTUP_TOOLCHAIN takes precedence over it.
+          echo "RUSTUP_TOOLCHAIN=${{ steps.msrv.outputs.version }}" >> "$GITHUB_ENV"
+      - name: Show toolchain
+        run: rustc --version
       - name: Build and test with MSRV
         run: cargo test --workspace --locked

@@ -67,9 +67,13 @@ jobs:
       - name: Install build tools (Debian packages)
         run: |
           apt-get update
-          apt-get install -y --no-install-recommends ca-certificates git build-essential cargo rustc
-          rustc --version
-          cargo --version
+          apt-get install -y --no-install-recommends ca-certificates curl git build-essential
+      - name: Install Rust (rustup, stable, minimal profile)
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+          "$HOME/.cargo/bin/rustc" --version
+          "$HOME/.cargo/bin/cargo" --version
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
         with:
           persist-credentials: false
